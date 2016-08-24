@@ -1,8 +1,8 @@
 # coding: utf-8
 
 import sys
-dataDir = '../../VQA'
-sys.path.insert(0, '%s/PythonHelperTools/vqaTools' %(dataDir))
+dataDir = '/home/ssd/VQA'
+sys.path.insert(0, '/home/tanmay/Code/GenVQA/VQA/PythonHelperTools/vqaTools')
 from vqa import VQA
 from vqaEvaluation.vqaEval import VQAEval
 import matplotlib.pyplot as plt
@@ -12,19 +12,23 @@ import random
 import os
 
 # set up file names and paths
-taskType    ='OpenEnded'
+taskType    ='MultipleChoice'
 dataType    ='mscoco'  # 'mscoco' for real and 'abstract_v002' for abstract
-dataSubType ='train2014'
-annFile     ='%s/Annotations/%s_%s_annotations.json'%(dataDir, dataType, dataSubType)
-quesFile    ='%s/Questions/%s_%s_%s_questions.json'%(dataDir, taskType, dataType, dataSubType)
+dataSubType ='val2014'
+annFile     ='%s/%s_%s_annotations.json'%(dataDir, dataType, dataSubType)
+quesFile    ='%s/%s_%s_%s_questions.json'%(dataDir, taskType, dataType, dataSubType)
 imgDir      ='%s/Images/%s/%s/' %(dataDir, dataType, dataSubType)
 resultType  ='fake'
 fileTypes   = ['results', 'accuracy', 'evalQA', 'evalQuesType', 'evalAnsType'] 
 
 # An example result json file has been provided in './Results' folder.  
 
-[resFile, accuracyFile, evalQAFile, evalQuesTypeFile, evalAnsTypeFile] = ['%s/Results/%s_%s_%s_%s_%s.json'%(dataDir, taskType, dataType, dataSubType, \
-resultType, fileType) for fileType in fileTypes]  
+# [resFile, accuracyFile, evalQAFile, evalQuesTypeFile, evalAnsTypeFile] = ['%s/Results/%s_%s_%s_%s_%s.json'%(dataDir, taskType, dataType, dataSubType, \
+# resultType, fileType) for fileType in fileTypes]  
+
+results_dir = '/home/tanmay/Code/GenVQA/Exp_Results/VQA/QA_explicit_dot_same_lr/answer_classifiers'
+[resFile, accuracyFile, evalQAFile, evalQuesTypeFile, evalAnsTypeFile] = [
+        '{}/eval_val_rest_{}.json'.format(results_dir,fileType) for fileType in fileTypes]
 
 # create vqa object and vqaRes object
 vqa = VQA(annFile, quesFile)
@@ -38,7 +42,9 @@ vqaEval = VQAEval(vqa, vqaRes, n=2)   #n is precision of accuracy (number of pla
 If you have a list of question ids on which you would like to evaluate your results, pass it as a list to below function
 By default it uses all the question ids in annotation file
 """
-vqaEval.evaluate() 
+anns    = json.load(open(resFile))
+quesIds = [ann['question_id'] for ann in anns]
+vqaEval.evaluate(quesIds) 
 
 # print accuracies
 print "\n"
@@ -51,34 +57,35 @@ print "Per Answer Type Accuracy is the following:"
 for ansType in vqaEval.accuracy['perAnswerType']:
 	print "%s : %.02f" %(ansType, vqaEval.accuracy['perAnswerType'][ansType])
 print "\n"
-# demo how to use evalQA to retrieve low score result
-evals = [quesId for quesId in vqaEval.evalQA if vqaEval.evalQA[quesId]<35]   #35 is per question percentage accuracy
-if len(evals) > 0:
-	print 'ground truth answers'
-	randomEval = random.choice(evals)
-	randomAnn = vqa.loadQA(randomEval)
-	vqa.showQA(randomAnn)
 
-	print '\n'
-	print 'generated answer (accuracy %.02f)'%(vqaEval.evalQA[randomEval])
-	ann = vqaRes.loadQA(randomEval)[0]
-	print "Answer:   %s\n" %(ann['answer'])
+# # demo how to use evalQA to retrieve low score result
+# evals = [quesId for quesId in vqaEval.evalQA if vqaEval.evalQA[quesId]<35]   #35 is per question percentage accuracy
+# if len(evals) > 0:
+# 	print 'ground truth answers'
+# 	randomEval = random.choice(evals)
+# 	randomAnn = vqa.loadQA(randomEval)
+# 	vqa.showQA(randomAnn)
 
-	imgId = randomAnn[0]['image_id']
-	imgFilename = 'COCO_' + dataSubType + '_'+ str(imgId).zfill(12) + '.jpg'
-	if os.path.isfile(imgDir + imgFilename):
-		I = io.imread(imgDir + imgFilename)
-		plt.imshow(I)
-		plt.axis('off')
-		plt.show()
+# 	print '\n'
+# 	print 'generated answer (accuracy %.02f)'%(vqaEval.evalQA[randomEval])
+# 	ann = vqaRes.loadQA(randomEval)[0]
+# 	print "Answer:   %s\n" %(ann['answer'])
 
-# plot accuracy for various question types
-plt.bar(range(len(vqaEval.accuracy['perQuestionType'])), vqaEval.accuracy['perQuestionType'].values(), align='center')
-plt.xticks(range(len(vqaEval.accuracy['perQuestionType'])), vqaEval.accuracy['perQuestionType'].keys(), rotation='0',fontsize=10)
-plt.title('Per Question Type Accuracy', fontsize=10)
-plt.xlabel('Question Types', fontsize=10)
-plt.ylabel('Accuracy', fontsize=10)
-plt.show()
+# 	imgId = randomAnn[0]['image_id']
+# 	imgFilename = 'COCO_' + dataSubType + '_'+ str(imgId).zfill(12) + '.jpg'
+# 	if os.path.isfile(imgDir + imgFilename):
+# 		I = io.imread(imgDir + imgFilename)
+# 		plt.imshow(I)
+# 		plt.axis('off')
+# 		plt.show()
+
+# # plot accuracy for various question types
+# plt.bar(range(len(vqaEval.accuracy['perQuestionType'])), vqaEval.accuracy['perQuestionType'].values(), align='center')
+# plt.xticks(range(len(vqaEval.accuracy['perQuestionType'])), vqaEval.accuracy['perQuestionType'].keys(), rotation='0',fontsize=10)
+# plt.title('Per Question Type Accuracy', fontsize=10)
+# plt.xlabel('Question Types', fontsize=10)
+# plt.ylabel('Accuracy', fontsize=10)
+# plt.show()
 
 # save evaluation results to ./Results folder
 json.dump(vqaEval.accuracy,     open(accuracyFile,     'w'))

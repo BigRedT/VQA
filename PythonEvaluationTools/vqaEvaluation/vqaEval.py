@@ -65,7 +65,7 @@ class VQAEval:
 							 '>', '<', '@', '`', ',', '?', '!']
 
 	
-	def evaluate(self, quesIds=None):
+	def evaluate(self, quesIds=None, combColor=True):
 		if quesIds == None:
 			quesIds = [quesId for quesId in self.params['question_id']]
 		gts = {}
@@ -99,7 +99,12 @@ class VQAEval:
 				matchingAns = [item for item in otherGTAns if item['answer']==resAns]
 				acc = min(1, float(len(matchingAns))/3)
 				gtAcc.append(acc)
-			quesType    = gts[quesId]['question_type']
+                        if combColor:
+                                quesType    = 'color' if 'color' in gts[quesId]['question_type'] \
+                                              else gts[quesId]['question_type']
+                        else:
+                                quesType = gts[quesId]['question_type']
+
 			ansType     = gts[quesId]['answer_type']
 			avgGTAcc = float(sum(gtAcc))/len(gtAcc)
 			accQA.append(avgGTAcc)
